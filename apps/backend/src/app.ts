@@ -7,6 +7,8 @@ import {
 } from "fastify-type-provider-zod"
 import databasePlugin from "./plugin/db"
 import { authRoutes } from "./modules/auth/auth.route"
+import { organizationRoutes } from "./modules/organization/organization.route"
+import { userRoutes } from "./modules/user/user.routes"
 import cors from "@fastify/cors"
 import helmet from "@fastify/helmet"
 import jwt from "@fastify/jwt"
@@ -61,6 +63,8 @@ export default function bootstrap() {
     app.register(errorHandler)
 
     app.register(authRoutes, { prefix: "/api/auth" })
+    app.register(organizationRoutes, { prefix: "/api/organizations" })
+    app.register(userRoutes, { prefix: "/api/users" })
 
     return app;
 }

@@ -2,7 +2,7 @@ import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres"
 import * as schema from "./schema"
 import { Pool } from "pg"
 
-interface DbType {
+export interface DbType {
     db: NodePgDatabase<typeof schema>
     pool: Pool
 }

@@ -1,8 +1,18 @@
 {
-  "name": "db",
-  "module": "index.ts",
+  "name": "@repo/db",
+  "module": "src/client.ts",
   "type": "module",
   "private": true,
+  "exports": {
+    ".": "./src/client.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "db:generate": "bunx drizzle-kit generate",
+    "db:migrate": "bunx drizzle-kit migrate",
+    "db:push": "bunx drizzle-kit push",
+    "db:studio": "bunx drizzle-kit studio"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/pg": "^8.21.0",

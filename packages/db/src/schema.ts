@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, pgEnum, pgTable, PgVector, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const usersTable = pgTable("users", {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -11,6 +11,18 @@ export const usersTable = pgTable("users", {
     createdAt: timestamp("created_at", { mode: "date", withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true }).notNull().$onUpdateFn(() => new Date(Date.now()))
 }).enableRLS();
+
+export const tokensTable = pgTable("tokens", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").references(() => usersTable.id, { onDelete: "cascade" }).notNull(),
+    refreshToken: text("refresh_token").notNull(),
+    revoked: boolean("revoked").default(false).notNull(),
+    expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+    uniqueIndex("tokens_refresh_token_idx").on(table.refreshToken),
+    index("tokens_user_id_idx").on(table.userId),
+]).enableRLS()
 
 export const organizationTable = pgTable("organizations", {
     id: uuid("id").primaryKey().defaultRandom(),

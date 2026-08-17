@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, doublePrecision, index, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const usersTable = pgTable("users", {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -38,7 +38,10 @@ export const membersTable = pgTable("members", {
     organizationId: uuid("organization_id").references(() => organizationTable.id, { onDelete: "cascade" }).notNull(),
     userId: uuid("user_id").references(() => usersTable.id, { onDelete: "cascade" }).notNull(),
     createdAt: timestamp("created_at", { mode: "date", withTimezone: true }).notNull().defaultNow(),
-}).enableRLS();
+}, (table) => [
+    uniqueIndex("members_organization_id_user_id_idx").on(table.organizationId, table.userId),
+    index("members_user_id_idx").on(table.userId),
+]).enableRLS();
 
 export const boardsTable = pgTable("boards", {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -53,9 +56,12 @@ export const listsTable = pgTable("lists", {
     id: uuid("id").primaryKey().defaultRandom(),
     boardId: uuid("board_id").references(() => boardsTable.id, { onDelete: "cascade" }).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
+    position: doublePrecision("position").notNull(),
     createdAt: timestamp("created_at", { mode: "date", withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true }).notNull().$onUpdateFn(() => new Date(Date.now()))
-}).enableRLS()
+}, (table) => [
+    index("lists_board_id_position_idx").on(table.boardId, table.position),
+]).enableRLS()
 
 export const cardPriority = pgEnum("card_priority", ["HIGH", "MEDIUM", "LOW"])
 export const cardStatus = pgEnum("card_status", ["UPCOMING", "IN PROGRESS", "IN REVIEW", "DONE"])
@@ -64,16 +70,20 @@ export const cardsTable = pgTable("cards", {
     id: uuid("id").primaryKey().defaultRandom(),
     listId: uuid("list_id").references(() => listsTable.id, { onDelete: "cascade" }).notNull(),
     title: varchar("title", { length: 100 }).notNull(),
-    description: varchar("description", { length: 250 }).notNull(),
-    dueDate: timestamp("due_date", { mode: "date", withTimezone: true }).notNull(),
+    description: varchar("description", { length: 250 }).notNull().default(""),
+    dueDate: timestamp("due_date", { mode: "date", withTimezone: true }),
+    position: doublePrecision("position").notNull(),
     isArchived: boolean("is_archived").default(false).notNull(),
     createdBy: uuid("created_by").references(() => usersTable.id, { onDelete: "cascade" }).notNull(),
-    assignedTo: uuid("assigned_to").references(() => usersTable.id, { onDelete: "cascade" }).notNull(),
+    assignedTo: uuid("assigned_to").references(() => usersTable.id, { onDelete: "set null" }),
     status: cardStatus("status").default("IN PROGRESS").notNull(),
     priority: cardPriority("priority").default("MEDIUM").notNull(),
     createdAt: timestamp("created_at", { mode: "date", withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true }).notNull().$onUpdateFn(() => new Date(Date.now()))
-}).enableRLS()
+}, (table) => [
+    index("cards_list_id_position_idx").on(table.listId, table.position),
+    index("cards_assigned_to_idx").on(table.assignedTo),
+]).enableRLS()
 
 export const attachmentsTable = pgTable("attachments", {
     id: uuid("id").primaryKey().defaultRandom(),

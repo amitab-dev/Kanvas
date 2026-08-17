@@ -9,6 +9,11 @@ import databasePlugin from "./plugin/db"
 import { authRoutes } from "./modules/auth/auth.route"
 import { organizationRoutes } from "./modules/organization/organization.route"
 import { userRoutes } from "./modules/user/user.routes"
+import { boardRoutes, organizationBoardRoutes } from "./modules/board/board.route"
+import { boardListRoutes, listRoutes } from "./modules/list/list.route"
+import { cardRoutes, listCardRoutes } from "./modules/card/card.route"
+import { cardCommentRoutes, commentRoutes } from "./modules/comment/comment.route"
+import { attachmentRoutes, cardAttachmentRoutes } from "./modules/attachment/attachment.route"
 import cors from "@fastify/cors"
 import helmet from "@fastify/helmet"
 import jwt from "@fastify/jwt"
@@ -65,6 +70,16 @@ export default function bootstrap() {
     app.register(authRoutes, { prefix: "/api/auth" })
     app.register(organizationRoutes, { prefix: "/api/organizations" })
     app.register(userRoutes, { prefix: "/api/users" })
+    app.register(organizationBoardRoutes, { prefix: "/api/organizations/:organizationId/boards" })
+    app.register(boardRoutes, { prefix: "/api/boards" })
+    app.register(boardListRoutes, { prefix: "/api/boards/:boardId/lists" })
+    app.register(listRoutes, { prefix: "/api/lists" })
+    app.register(listCardRoutes, { prefix: "/api/lists/:listId/cards" })
+    app.register(cardRoutes, { prefix: "/api/cards" })
+    app.register(cardCommentRoutes, { prefix: "/api/cards/:cardId/comments" })
+    app.register(commentRoutes, { prefix: "/api/comments" })
+    app.register(cardAttachmentRoutes, { prefix: "/api/cards/:cardId/attachments" })
+    app.register(attachmentRoutes, { prefix: "/api/attachments" })
 
     return app;
 }

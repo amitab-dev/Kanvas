@@ -2,6 +2,11 @@ import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import * as authController from "./auth.controller"
 import { loginSchema, registerSchema } from "./auth.types";
 
+/**
+ * Mounted at /api/auth. Only /logout requires a valid access token; /refresh
+ * authenticates on the refresh cookie alone, since it exists to be called once
+ * the access token has already expired.
+ */
 export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     app.post(
         "/register",

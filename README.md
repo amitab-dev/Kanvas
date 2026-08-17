@@ -1,159 +1,108 @@
-# Turborepo starter
+# Kanvas
 
-This Turborepo starter is maintained by the Turborepo core team.
+A Trello-style kanban tool: organizations own boards, boards hold lists, lists hold
+cards, and cards carry comments and attachments.
 
-## Using this example
+The repository is a [Turborepo](https://turborepo.dev) monorepo run with
+[Bun](https://bun.com).
 
-Run the following command:
+## What's inside
 
-```sh
-npx create-turbo@latest
-```
+| Path                         | Description                                                                |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| `apps/backend`               | Fastify REST API, JWT auth over cookies ([readme](apps/backend/README.md))  |
+| `apps/web`                   | Next.js 16 client ([readme](apps/web/README.md))                            |
+| `packages/db`                | Drizzle schema, migrations and the Postgres client                          |
+| `packages/eslint-config`     | Shared ESLint configs                                                       |
+| `packages/typescript-config` | Shared `tsconfig.json` bases                                                |
+| `packages/ui`                | Stub component library from `create-turbo`; the web app does not use it     |
 
-## What's inside?
+## Requirements
 
-This Turborepo includes the following packages/apps:
+- Bun 1.3.14 (the version pinned in `packageManager`)
+- A PostgreSQL database
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+## Getting started
 
 ```sh
-cd my-turborepo
-turbo build
+bun install
 ```
 
-Without global `turbo`, use your package manager:
+Create `apps/backend/.env`:
 
 ```sh
-cd my-turborepo
-npx turbo build
-bun dlx turbo build
-bun exec turbo build
+DATABASE_URL=postgresql://user:password@host:5432/kanvas
+# Optional in development, required in production:
+# PORT=8000
+# NODE_ENV=development
+# ORIGIN=https://your-web-origin
+# JWT_SECRET=...
+# COOKIE_SECRET=...
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+Apply the migrations before starting anything — against a database that is missing
+them, every list and card route returns a 500:
 
 ```sh
-turbo build --filter=docs
+cd packages/db && bun run db:migrate
 ```
 
-Without global `turbo`:
+`apps/web/.env` points the client at the API and already holds the local default:
 
 ```sh
-npx turbo build --filter=docs
-bun exec turbo build --filter=docs
-bun exec turbo build --filter=docs
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ```
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+Then run everything:
 
 ```sh
-cd my-turborepo
-turbo dev
+bun run dev
 ```
 
-Without global `turbo`, use your package manager:
+- Web: http://localhost:3000
+- API: http://localhost:8000 (health check at `/health`)
 
-```sh
-cd my-turborepo
-npx turbo dev
-bun exec turbo dev
-bun exec turbo dev
-```
+## Scripts
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+Run these from the repository root; each fans out through Turborepo.
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+| Script                | Description                            |
+| --------------------- | -------------------------------------- |
+| `bun run dev`         | Start every app in watch mode          |
+| `bun run build`       | Build every app and package            |
+| `bun run lint`        | Lint every workspace                   |
+| `bun run check-types` | Typecheck every workspace              |
+| `bun run format`      | Prettier over all `.ts`, `.tsx`, `.md` |
 
-```sh
-turbo dev --filter=web
-```
+Target one workspace with a filter, for example `bunx turbo dev --filter=web`.
 
-Without global `turbo`:
+Database scripts live in `packages/db` and are run from there:
 
-```sh
-npx turbo dev --filter=web
-bun exec turbo dev --filter=web
-bun exec turbo dev --filter=web
-```
+| Script                | Description                                          |
+| --------------------- | ---------------------------------------------------- |
+| `bun run db:generate` | Generate a migration from changes to `src/schema.ts` |
+| `bun run db:migrate`  | Apply pending migrations                             |
+| `bun run db:push`     | Push the schema straight to the database             |
+| `bun run db:studio`   | Open Drizzle Studio                                  |
 
-### Remote Caching
+All of them read `DATABASE_URL` from `apps/backend/.env` through
+`packages/db/drizzle.config.ts`.
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+## How the pieces fit
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+The web app talks to the API over HTTP with credentials; there is no shared server
+code between them. Login sets two httpOnly cookies, a 15-minute access token and a
+7-day refresh token. The client refreshes the access token on its first 401 and
+replays the request, so a session survives well past 15 minutes.
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+Authorization lives entirely in the API. The web app hides controls it knows will
+be rejected, but never grants anything; the rules are listed under
+[permissions](apps/backend/README.md#permissions).
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+## Known issues
 
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-bun exec turbo login
-bun exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-bun exec turbo link
-bun exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+- **`bun run build` fails in `web`.** `packages/ui` pins `@types/react` at
+  `19.2.2` while `apps/web` resolves `^19` to a newer release, and the two copies
+  produce incompatible `ref` types in `apps/web/src/components/ui/kbd.tsx` and
+  `skeleton.tsx`. `next dev` is unaffected. Aligning the versions, or adding a root
+  `overrides` entry for `@types/react`, clears it.

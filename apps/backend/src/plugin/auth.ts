@@ -30,10 +30,10 @@ const authPlugin: FastifyPluginAsync = async (app: FastifyInstance) => {
             if (!token) {
                 throw new ApiError(401, "Unauthorized access")
             }
-            // FIXME: `decode` only unpacks the token, it does not check the
-            // signature or expiry, so any well-formed JWT is accepted here.
-            // Use `req.jwtVerify()` (or `jwt.verify`) instead.
-            const authUser = req.server.jwt.decode(token) as AuthUser
+            // `verify`, not `decode`: decoding only unpacks the payload, so an
+            // unsigned or expired token would sail through and let anyone claim
+            // any user id. This throws on a bad signature or a past `exp`.
+            const authUser = req.server.jwt.verify<AuthUser>(token)
             req.user = authUser.id
         } catch {
             // Every failure collapses to one 401 so the response never says

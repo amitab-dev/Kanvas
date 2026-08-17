@@ -1,5 +1,22 @@
 import type { FastifyRequest } from "fastify";
 import { ApiError } from "../../utils/response";
+import env from "../../env";
+
+/**
+ * Options shared by both token cookies.
+ *
+ * `httpOnly` is the part that actually keeps a token out of reach of
+ * client-side script; without it the refresh cookie is no safer than
+ * localStorage. `secure` is relaxed outside production only because local
+ * development is served over plain http, where a secure cookie is dropped.
+ */
+export const tokenCookieOptions = (maxAge: number) => ({
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge
+});
 
 /**
  * Reads the refresh token out of its cookie.

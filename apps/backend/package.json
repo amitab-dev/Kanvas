@@ -4,7 +4,11 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun --hot src/server.ts"
+    "dev": "bun --hot src/server.ts",
+    "start": "bun src/server.ts",
+    "build": "bun build src/server.ts --target=bun --outdir dist",
+    "check-types": "tsc --noEmit",
+    "test": "bun test"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -19,6 +23,7 @@
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.0",
     "@fastify/jwt": "^10.2.1",
+    "@fastify/rate-limit": "^11.2.0",
     "@repo/db": "*",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.4.2",

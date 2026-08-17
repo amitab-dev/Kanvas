@@ -8,9 +8,17 @@ import { loginSchema, registerSchema } from "./auth.types";
  * the access token has already expired.
  */
 export const authRoutes: FastifyPluginAsyncZod = async (app) => {
+    const credentialRateLimit = {
+        rateLimit: {
+            max: 10,
+            timeWindow: "1 minute"
+        }
+    }
+
     app.post(
         "/register",
         {
+            config: credentialRateLimit,
             schema: {
                 body: registerSchema
             }
@@ -21,6 +29,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     app.post(
         "/login",
         {
+            config: credentialRateLimit,
             schema: {
                 body: loginSchema
             }
@@ -38,6 +47,9 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
 
     app.post(
         "/refresh",
+        {
+            config: credentialRateLimit
+        },
         async (req, reply) => authController.refreshTokens(req, reply)
     )
 }

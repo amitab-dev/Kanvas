@@ -2,7 +2,7 @@ import { configDotenv } from 'dotenv';
 import { defineConfig } from 'drizzle-kit';
 
 configDotenv({
-    path: "./.env",
+    path: "../../apps/backend/.env",
     quiet: true
 })
 

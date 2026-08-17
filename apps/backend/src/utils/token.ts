@@ -3,12 +3,12 @@ import crypto from "node:crypto"
 /**
  * Mints the opaque refresh token handed to the client.
  *
- * FIXME: `toString()` with no argument decodes the bytes as UTF-8, which
- * mangles every non-ASCII sequence into the replacement character and throws
- * away most of the entropy. Pass an encoding: `.toString("hex")`.
+ * The hex encoding is load-bearing: `toString()` with no argument reads the
+ * bytes as UTF-8, which collapses every invalid sequence into the replacement
+ * character and throws away most of the entropy the token depends on.
  */
 export function generateRefreshToken() {
-    return crypto.randomBytes(128).toString()
+    return crypto.randomBytes(128).toString("hex")
 }
 
 /**

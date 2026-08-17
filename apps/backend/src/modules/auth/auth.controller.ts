@@ -1,11 +1,11 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { tokensTable, usersTable } from "@repo/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 import { loginSchema, registerSchema } from "./auth.types";
 import { ApiError, ApiResponse } from "../../utils/response";
 import bcrypt from "bcrypt";
 import { generateRefreshToken, hashRefreshToken } from "../../utils/token";
-import { readRefreshCookie } from "./auth.service";
+import { readRefreshCookie, tokenCookieOptions } from "./auth.service";
 
 /**
  * Token strategy: a short-lived JWT access token the API verifies on every
@@ -15,11 +15,12 @@ import { readRefreshCookie } from "./auth.service";
  */
 
 // Both are in SECONDS, which is what the cookie `maxAge` option expects.
-// FIXME: they are also added to `Date.now()` below, which is in milliseconds,
-// so the `expires_at` written to the tokens table is far shorter than intended
-// (7 days becomes ~10 minutes). Multiply by 1000 at the Date call sites.
+// `Date` works in milliseconds, so anything written to `expires_at` goes
+// through `expiresAt()` rather than adding a TTL to `Date.now()` directly.
 const ACCESS_TOKEN_TTL = 60 * 15
 const REFRESH_TOKEN_TTL = 60 * 60 * 24 * 7
+
+const expiresAt = (ttlSeconds: number) => new Date(Date.now() + ttlSeconds * 1000)
 
 /** Creates an account. Does not log the user in; the client calls /login next. */
 export const registerUser = async (req: FastifyRequest, reply: FastifyReply) => {
@@ -98,22 +99,19 @@ export const loginUser = async (req: FastifyRequest, reply: FastifyReply) => {
         createdAt: user.createdAt,
     });
 
-    // Only the hash is stored: a leaked tokens table cannot be replayed, and
-    // lookups still work because the hash is deterministic.
+
     const refreshToken = generateRefreshToken();
     const hashedRefreshToken = hashRefreshToken(refreshToken);
 
-    await db.transaction(async (tx) => {
-        await tx.insert(tokensTable).values({
-            userId: user.id,
-            refreshToken: hashedRefreshToken,
-            expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL)
-        })
+    await db.insert(tokensTable).values({
+        userId: user.id,
+        refreshToken: hashedRefreshToken,
+        expiresAt: expiresAt(REFRESH_TOKEN_TTL)
     });
 
     return reply.code(200)
-        .cookie("kanvas_access_token", accessToken, { secure: true, maxAge: ACCESS_TOKEN_TTL, sameSite: "lax" })
-        .cookie("kanvas_refresh_token", refreshToken, { secure: true, maxAge: REFRESH_TOKEN_TTL, sameSite: "lax" })
+        .cookie("kanvas_access_token", accessToken, tokenCookieOptions(ACCESS_TOKEN_TTL))
+        .cookie("kanvas_refresh_token", refreshToken, tokenCookieOptions(REFRESH_TOKEN_TTL))
         .send(
             new ApiResponse(200, { accessToken }, "Logged in successfully")
         );
@@ -151,14 +149,6 @@ export const logoutUser = async (req: FastifyRequest, reply: FastifyReply) => {
 /**
  * Exchanges a refresh token for a new pair, rotating the refresh token so a
  * stolen one is usable at most once.
- *
- * FIXME: this route currently 500s for every user. Two problems compound:
- *  - login never persists a token row (see above), so nothing ever matches and
- *    `tokenUser` is undefined, which sends `undefined` into the user lookup and
- *    then a null `user_id` into the insert below;
- *  - the update matches on the hash alone, ignoring `revoked` and `expiresAt`,
- *    so once the insert is fixed a revoked or expired token would still be
- *    accepted. Add both conditions and 401 when no row comes back.
  */
 export const refreshTokens = async (req: FastifyRequest, reply: FastifyReply) => {
     const db = req.server.db;
@@ -168,42 +158,59 @@ export const refreshTokens = async (req: FastifyRequest, reply: FastifyReply) =>
 
     // Revoking and re-reading in one transaction is what makes rotation atomic:
     // two concurrent refreshes cannot both walk away with a valid token.
-    const [user] = await db.transaction(async (tx) => {
+    const user = await db.transaction(async (tx) => {
+        // Matching on `revoked` and `expiresAt` as well as the hash is what
+        // makes this a one-shot exchange: a token that was already spent, or
+        // one that has aged out, updates no rows and falls through to a 401.
         const [tokenUser] = await tx.update(tokensTable).set({
             revoked: true
         }).where(
-            eq(tokensTable.refreshToken, hashedRefreshToken)
+            and(
+                eq(tokensTable.refreshToken, hashedRefreshToken),
+                eq(tokensTable.revoked, false),
+                gt(tokensTable.expiresAt, new Date())
+            )
         ).returning({
             id: tokensTable.userId
         })
 
-        const user = await tx.select({
+        if (!tokenUser) {
+            throw new ApiError(401, "Invalid or expired refresh token");
+        }
+
+        const [user] = await tx.select({
             id: usersTable.id,
             email: usersTable.email,
             createdAt: usersTable.createdAt
         })
             .from(usersTable)
             .where(
-                eq(usersTable.id, tokenUser?.id as string)
+                eq(usersTable.id, tokenUser.id)
             )
+
+        // The token row cascades with its user, so this is unreachable short of
+        // the row being deleted mid-request.
+        if (!user) {
+            throw new ApiError(401, "Invalid or expired refresh token");
+        }
 
         return user
     })
 
     const accessToken = req.server.jwt.sign({ ...user })
-    const newRefeshToken = generateRefreshToken()
-    const newHashedRefreshToken = hashRefreshToken(newRefeshToken);
+    const newRefreshToken = generateRefreshToken()
+    const newHashedRefreshToken = hashRefreshToken(newRefreshToken);
 
     await db.insert(tokensTable).values({
-        userId: user?.id!,
+        userId: user.id,
         refreshToken: newHashedRefreshToken,
-        expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL)
+        expiresAt: expiresAt(REFRESH_TOKEN_TTL)
     })
 
     return reply
         .code(200)
-        .cookie("kanvas_access_token", accessToken, { secure: true, maxAge: ACCESS_TOKEN_TTL, sameSite: "lax" })
-        .cookie("kanvas_refresh_token", newRefeshToken, { secure: true, maxAge: REFRESH_TOKEN_TTL, sameSite: "lax" })
+        .cookie("kanvas_access_token", accessToken, tokenCookieOptions(ACCESS_TOKEN_TTL))
+        .cookie("kanvas_refresh_token", newRefreshToken, tokenCookieOptions(REFRESH_TOKEN_TTL))
         .send(
             new ApiResponse(200, { accessToken }, "Token refreshed successfully"),
         );

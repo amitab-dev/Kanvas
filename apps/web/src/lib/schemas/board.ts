@@ -9,11 +9,6 @@ export const cardTitleSchema = z.object({
     title: z.string().trim().min(1, "Card title is required").max(100),
 })
 
-/**
- * The card page's field form. `dueDate` is the raw value of an `<input
- * type="date">` and `assignedTo` uses "" for unassigned, since a select cannot
- * hold null; both are normalised before they reach the API.
- */
 export const cardDetailsSchema = z.object({
     title: z.string().trim().min(1, "Card title is required").max(100),
     description: z.string().max(250, "Description must be at most 250 characters"),

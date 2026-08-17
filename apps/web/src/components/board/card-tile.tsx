@@ -27,7 +27,7 @@ export function CardTile({
             data-card-tile
             draggable
             onDragStart={(event) => {
-                // Firefox only starts a drag when the transfer carries data.
+
                 event.dataTransfer.setData("text/plain", card.id)
                 event.dataTransfer.effectAllowed = "move"
                 onDragStart()

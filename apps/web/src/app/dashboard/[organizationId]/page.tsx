@@ -36,7 +36,7 @@ export default function OrganizationPage(props: PageProps<"/dashboard/[organizat
 
         const load = async () => {
             try {
-                // One round trip each: the org itself, its boards and its members.
+
                 const [organizationResponse, boardsResponse] = await Promise.all([
                     api.get<ApiEnvelope<Organization>>(`/organizations/${organizationId}`),
                     api.get<ApiEnvelope<Board[]>>(`/organizations/${organizationId}/boards`),
@@ -64,7 +64,7 @@ export default function OrganizationPage(props: PageProps<"/dashboard/[organizat
     }, [organizationId, loadMembers])
 
     const fatalError = loadError?.organizationId === organizationId ? loadError.message : null
-    // Data for a previous organization is still on screen while the new one loads.
+
     const loading = !fatalError && organization?.id !== organizationId
 
     if (loading) {

@@ -19,12 +19,10 @@ export default function BoardPage(props: PageProps<"/dashboard/[organizationId]/
     const [lists, setLists] = useState<List[]>([])
     const [cards, setCards] = useState<CardsByList>({})
     const [error, setError] = useState<string | null>(null)
-    // Tagged with the board it belongs to, so a failure does not leak onto the
-    // next board the user opens.
+
     const [loadError, setLoadError] = useState<{ boardId: string; message: string } | null>(null)
     const [drag, setDrag] = useState<{ cardId: string; listId: string } | null>(null)
 
-    /** Refetches one column, used to resync after a rejected move. */
     const reloadCards = useCallback(async (listId: string) => {
         const { data } = await api.get<ApiEnvelope<Card[]>>(`/lists/${listId}/cards`)
         setCards((current) => ({ ...current, [listId]: data.data }))
@@ -38,7 +36,6 @@ export default function BoardPage(props: PageProps<"/dashboard/[organizationId]/
                 const { data } = await api.get<ApiEnvelope<BoardDetail>>(`/boards/${boardId}`)
                 const boardLists = [...data.data.lists].sort((a, b) => a.position - b.position)
 
-                // Cards are per list, so the columns are filled in one parallel pass.
                 const columns = await Promise.all(
                     boardLists.map(async (list) => {
                         const response = await api.get<ApiEnvelope<Card[]>>(
@@ -102,8 +99,6 @@ export default function BoardPage(props: PageProps<"/dashboard/[organizationId]/
         const previousCards = cards
         const target = (cards[targetListId] ?? []).filter((item) => item.id !== drag.cardId)
 
-        // The index came from the rendered column, which still contains the card
-        // being dragged when it has not left its own list.
         const from = source.findIndex((item) => item.id === drag.cardId)
         const insertAt = sourceListId === targetListId && from < index ? index - 1 : index
 

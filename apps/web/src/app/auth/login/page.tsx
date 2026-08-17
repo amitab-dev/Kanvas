@@ -29,7 +29,12 @@ export default function LoginPage() {
     const onSubmit = async (values: LoginInput) => {
         try {
             await api.post("/auth/login", values)
-            router.push("/dashboard")
+
+            const next = new URLSearchParams(window.location.search).get("next")
+            const destination =
+                next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard"
+
+            router.push(destination)
         } catch (error) {
             setError("root", { message: apiErrorMessage(error, "Unable to log in") })
             return

@@ -14,7 +14,6 @@ export type ApiEnvelope<T> = {
 
 type RetriableConfig = InternalAxiosRequestConfig & { _retried?: boolean }
 
-
 let refreshRequest: Promise<void> | null = null
 
 const refreshSession = () => {
@@ -28,16 +27,24 @@ const refreshSession = () => {
     return refreshRequest
 }
 
-/**
- * A 401 that survives a refresh means the session is gone for good, which can
- * happen on any screen. Sending the browser to login here saves every caller
- * from having to recognise an expired session in its own error handling.
- */
+export const expiredSessionUrl = () => {
+    const params = new URLSearchParams({ expired: "1" })
+
+    if (typeof window !== "undefined") {
+        const { pathname, search } = window.location
+        if (pathname !== "/" && !pathname.startsWith("/auth/")) {
+            params.set("next", `${pathname}${search}`)
+        }
+    }
+
+    return `/auth/login?${params.toString()}`
+}
+
 const redirectToLogin = () => {
     if (typeof window === "undefined") return
     if (window.location.pathname.startsWith("/auth/")) return
 
-    window.location.replace("/auth/login")
+    window.location.replace(expiredSessionUrl())
 }
 
 api.interceptors.response.use(

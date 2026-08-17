@@ -163,7 +163,7 @@ function AddMemberForm({
             onError(null)
             await onAdded()
         } catch (error) {
-            // Keep "no such user" next to the field it belongs to.
+
             setError("email", { message: apiErrorMessage(error, "Unable to add the member") })
             return
         }

@@ -19,13 +19,11 @@ export type Organization = {
     updatedAt: string | null
 }
 
-/** `GET /organizations/:id` hydrates the admin and the membership rows. */
 export type OrganizationDetail = Organization & {
     admin: PublicUser
     members: { id: string; userId: string; createdAt: string; user: PublicUser }[]
 }
 
-/** The flattened row `GET /organizations/:id/members` returns. */
 export type Member = {
     id: string
     userId: string
@@ -45,7 +43,6 @@ export type Board = {
     updatedAt: string | null
 }
 
-/** `GET /boards/:id` hydrates the creator and the board's lists. */
 export type BoardDetail = Omit<Board, "creatorName"> & {
     creator: PublicUser
     lists: List[]
@@ -83,7 +80,6 @@ export type Card = {
     assignee?: PublicUser | null
 }
 
-/** `GET /cards/:id` returns everything the card page shows. */
 export type CardDetail = Card & {
     creator: PublicUser
     assignee: PublicUser | null

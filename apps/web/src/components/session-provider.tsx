@@ -2,7 +2,7 @@
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { api, apiErrorMessage, apiErrorStatus } from "@/lib/api"
+import { api, apiErrorMessage, apiErrorStatus, expiredSessionUrl } from "@/lib/api"
 import type { ApiEnvelope } from "@/lib/api"
 import type { User } from "@/lib/types"
 import { CircleAlert } from "lucide-react"
@@ -24,12 +24,6 @@ export function useSession() {
     return session
 }
 
-/**
- * Guards every dashboard route: it resolves the signed-in user once and sends
- * anyone without a usable session back to the login page. The API is the only
- * source of truth here — the auth cookies are httpOnly, so the client cannot
- * read them directly.
- */
 export function SessionProvider({
     children,
     fallback,
@@ -54,11 +48,8 @@ export function SessionProvider({
             } catch (loadError) {
                 if (!active) return
 
-                // A 401 is a signed-out user; anything else (API down, 500) is
-                // not, and bouncing to a login page that cannot work either
-                // would only hide the real problem.
                 if (apiErrorStatus(loadError) === 401) {
-                    router.replace("/auth/login")
+                    router.replace(expiredSessionUrl())
                     return
                 }
 

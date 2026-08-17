@@ -39,7 +39,7 @@ export function AttachmentsSection({
 }: {
     cardId: string
     attachments: Attachment[]
-    /** True for the organization admin, who may remove anyone's attachment. */
+
     canModerate: boolean
     onChange: (attachments: Attachment[]) => void
     onError: (message: string | null) => void

@@ -57,7 +57,6 @@ export function CardDetailsForm({
         },
     })
 
-    // "" means "no value" in both selects and the date input; the API wants null.
     const assigneeLabels: Record<string, string> = {
         [UNASSIGNED]: "Unassigned",
         ...Object.fromEntries(members.map((member) => [member.userId, member.fullName])),
@@ -73,8 +72,7 @@ export function CardDetailsForm({
                 dueDate: values.dueDate ? new Date(values.dueDate).toISOString() : null,
                 assignedTo: values.assignedTo || null,
             })
-            // PATCH returns the bare row, so the hydrated relations are kept —
-            // except the assignee, which this form may have just changed.
+
             const assignee = members.find((member) => member.userId === data.data.assignedTo)
 
             onSaved({

@@ -1,6 +1,5 @@
 import z from "zod"
 
-// Mirrors the backend's `slugSchema` so a bad slug is caught before the round trip.
 export const slugSchema = z
     .string()
     .trim()
@@ -34,7 +33,6 @@ export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>
 export type AddMemberInput = z.infer<typeof addMemberSchema>
 export type BoardInput = z.infer<typeof boardSchema>
 
-/** Turns "Acme Corp!" into "acme-corp" so the slug field can follow the name. */
 export const slugify = (value: string) =>
     value
         .toLowerCase()

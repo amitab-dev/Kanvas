@@ -23,14 +23,13 @@ export function CommentsSection({
 }: {
     cardId: string
     comments: CardComment[]
-    /** True for the organization admin, who may delete anyone's comment. */
+
     canModerate: boolean
     onChange: (comments: CardComment[]) => void
     onError: (message: string | null) => void
 }) {
     const { user } = useSession()
 
-    // GET /cards/:id returns comments unordered, so the thread is sorted here.
     const thread = [...comments].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     )
@@ -51,7 +50,7 @@ export function CommentsSection({
                 `/cards/${cardId}/comments`,
                 values,
             )
-            // The create route returns the bare row; the author is the signed-in user.
+
             onChange([
                 ...comments,
                 {

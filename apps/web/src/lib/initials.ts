@@ -1,4 +1,3 @@
-/** First and last initial of a name, for avatar fallbacks. */
 export const initials = (name: string) => {
     const parts = name.trim().split(/\s+/).filter(Boolean)
     if (parts.length === 0) return "?"

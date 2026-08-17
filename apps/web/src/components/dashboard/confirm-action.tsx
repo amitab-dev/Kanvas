@@ -12,10 +12,6 @@ import {
 import { LoaderCircle } from "lucide-react"
 import { useState } from "react"
 
-/**
- * A destructive action behind a confirmation popover. `onConfirm` may throw —
- * the caller owns error reporting, this only manages the pending state.
- */
 export function ConfirmAction({
     title,
     description,

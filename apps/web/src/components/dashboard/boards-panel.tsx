@@ -46,8 +46,6 @@ export function BoardsPanel({
     const { user } = useSession()
     const [editingId, setEditingId] = useState<string | null>(null)
 
-    // The API lets the board's creator and the organization admin rename or
-    // delete it; everyone else in the org can only open it.
     const canManage = (board: Board) =>
         board.createdBy === user.id || adminId === user.id
 
@@ -157,7 +155,6 @@ export function BoardsPanel({
     )
 }
 
-/** The create route returns the raw row, without the joined creator name. */
 type CreatedBoard = Omit<Board, "creatorName">
 
 function CreateBoardForm({

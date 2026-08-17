@@ -57,10 +57,6 @@ export function ListColumn({
         }
     }
 
-    /**
-     * Where a drop at this pointer position would land: the first card whose
-     * midpoint is below the cursor, or the end of the column.
-     */
     const indexFromPointer = (container: HTMLElement, clientY: number) => {
         const tiles = Array.from(container.querySelectorAll<HTMLElement>("[data-card-tile]"))
 
@@ -137,7 +133,7 @@ export function ListColumn({
             <div
                 onDragOver={(event) => {
                     if (!draggingCardId) return
-                    // Preventing the default is what marks this a valid drop target.
+
                     event.preventDefault()
                     event.dataTransfer.dropEffect = "move"
                     setDropIndex(indexFromPointer(event.currentTarget, event.clientY))
@@ -263,7 +259,6 @@ function CardComposer({
             return
         }
 
-        // The composer stays open so several cards can be typed in a row.
         reset()
     }
 

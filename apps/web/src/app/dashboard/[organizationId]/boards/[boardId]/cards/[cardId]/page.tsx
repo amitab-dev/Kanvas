@@ -38,9 +38,7 @@ export default function CardPage(
 
         const load = async () => {
             try {
-                // Members come along for the assignee picker, and the
-                // organization for its admin, who may moderate every comment
-                // and attachment on the card.
+
                 const [cardResponse, membersResponse, organizationResponse] = await Promise.all([
                     api.get<ApiEnvelope<CardDetail>>(`/cards/${cardId}`),
                     api.get<ApiEnvelope<Member[]>>(`/organizations/${organizationId}/members`),
